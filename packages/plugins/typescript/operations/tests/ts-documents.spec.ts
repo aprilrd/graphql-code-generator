@@ -5697,6 +5697,86 @@ export type KittyQuery = { __typename?: 'Query', animals: Array<{ __typename?: '
     });
   });
 
+  describe('nullability operators handling', () => {
+    it('fields with ! should resolve into required', async () => {
+      const schema = buildSchema(/* GraphQL */ `
+        type Query {
+          user: User!
+        }
+
+        type User {
+          name: String
+          address: String!
+        }
+      `);
+
+      const fragment = parse(/* GraphQL */ `
+        query user($showAddress: Boolean!) {
+          user {
+            name!
+            address!
+          }
+        }
+      `);
+
+      const { content } = await plugin(
+        schema,
+        [{ location: '', document: fragment }],
+        {},
+        {
+          outputFile: 'graphql.ts',
+        }
+      );
+
+      expect(content).toBeSimilarStringTo(`
+      export type UserQueryVariables = Exact<{
+        showAddress: Scalars['Boolean'];
+      }>;
+
+
+      export type UserQuery = { __typename?: 'Query', user: { __typename?: 'User', name: string, address: string } };`);
+    });
+
+    it('fields with ? should resolve into optional', async () => {
+      const schema = buildSchema(/* GraphQL */ `
+        type Query {
+          user: User!
+        }
+
+        type User {
+          name: String
+          address: String!
+        }
+      `);
+
+      const fragment = parse(/* GraphQL */ `
+        query user($showAddress: Boolean!) {
+          user {
+            name?
+            address?
+          }
+        }
+      `);
+
+      const { content } = await plugin(
+        schema,
+        [{ location: '', document: fragment }],
+        {},
+        {
+          outputFile: 'graphql.ts',
+        }
+      );
+
+      expect(content).toBeSimilarStringTo(`
+      export type UserQueryVariables = Exact<{
+        showAddress: Scalars['Boolean'];
+      }>;
+
+
+      export type UserQuery = { __typename?: 'Query', user: { __typename?: 'User', name?: string | null | undefined, address?: string | null | undefined } };`);
+    });
+  })
+
   it('inline fragment with conditional directives and avoidOptionals, without preResolveTypes', async () => {
     const schema = buildSchema(/* GraphQL */ `
       type Query {

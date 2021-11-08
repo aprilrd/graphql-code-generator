@@ -19,6 +19,7 @@ import {
   isListType,
   isAbstractType,
   GraphQLOutputType,
+  RequiredStatus,
 } from 'graphql';
 import { ScalarsMap, NormalizedScalarsMap, ParsedScalarsMap } from './types';
 import { DEFAULT_SCALARS } from './scalars';
@@ -427,9 +428,27 @@ export function getPossibleTypes(schema: GraphQLSchema, type: GraphQLNamedType):
   return [];
 }
 
+export function getFieldRequiredStatus(field: FieldNode): 'optional' | 'unset' | 'required' {
+  switch (getRequiredStatus(field)) {
+    case 'required': {
+      return 'required'
+    }
+    case 'optional': {
+      return 'optional'
+    }
+    case 'unset': {
+      return hasConditionalDirectives(field) ? 'optional' : 'unset';
+    }
+  }
+}
+
 export function hasConditionalDirectives(field: FieldNode): boolean {
   const CONDITIONAL_DIRECTIVES = ['skip', 'include'];
   return field.directives?.some(directive => CONDITIONAL_DIRECTIVES.includes(directive.name.value));
+}
+
+export function getRequiredStatus(field: FieldNode): RequiredStatus {
+  return field.required;
 }
 
 type WrapModifiersOptions = {

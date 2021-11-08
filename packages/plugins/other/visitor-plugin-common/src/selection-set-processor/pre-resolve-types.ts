@@ -6,7 +6,7 @@ import {
   SelectionSetProcessorConfig,
   PrimitiveField,
 } from './base';
-import { GraphQLObjectType, GraphQLInterfaceType, isEnumType, isNonNullType } from 'graphql';
+import { GraphQLObjectType, GraphQLInterfaceType, isEnumType, isNonNullType, GraphQLNonNull } from 'graphql';
 import { getBaseType, removeNonNullWrapper } from '@graphql-codegen/plugin-helpers';
 
 export class PreResolveTypesProcessor extends BaseSelectionSetProcessor<SelectionSetProcessorConfig> {
@@ -33,9 +33,6 @@ export class PreResolveTypesProcessor extends BaseSelectionSetProcessor<Selectio
       const baseType = getBaseType(fieldObj.type);
       let typeToUse = baseType.name;
 
-      const useInnerType = field.isConditional && isNonNullType(fieldObj.type);
-      const innerType = useInnerType ? removeNonNullWrapper(fieldObj.type) : undefined;
-
       if (isEnumType(baseType)) {
         typeToUse =
           (this.config.namespacedImportName ? `${this.config.namespacedImportName}.` : '') +
@@ -44,13 +41,32 @@ export class PreResolveTypesProcessor extends BaseSelectionSetProcessor<Selectio
         typeToUse = this.config.scalars[baseType.name];
       }
 
-      const name = this.config.formatNamedField(field.fieldName, useInnerType ? innerType : fieldObj.type);
-      const wrappedType = this.config.wrapTypeWithModifiers(typeToUse, fieldObj.type);
+      // required?
+      switch (field.required) {
+        case 'required': {
+          const type = (isNonNullType(fieldObj.type) ? fieldObj.type : new GraphQLNonNull(fieldObj.type));
+          return {
+            name: this.config.formatNamedField(field.fieldName, type),
+            type: this.config.wrapTypeWithModifiers(typeToUse, type),
+          }
+        }
+        case 'optional': {
+          const type = (isNonNullType(fieldObj.type) ? removeNonNullWrapper(fieldObj.type) : fieldObj.type);
+          return {
+            name: this.config.formatNamedField(field.fieldName, type),
+            type: this.config.wrapTypeWithModifiers(typeToUse, type),
+          }
+        }
+        default: {
+          const useInnerType = isNonNullType(fieldObj.type);
+          const innerType = useInnerType ? removeNonNullWrapper(fieldObj.type) : undefined;
 
-      return {
-        name,
-        type: wrappedType,
-      };
+          return {
+            name: this.config.formatNamedField(field.fieldName, useInnerType ? innerType : fieldObj.type),
+            type: this.config.wrapTypeWithModifiers(typeToUse, useInnerType ? innerType : fieldObj.type),
+          }
+        }
+      }
     });
   }
 

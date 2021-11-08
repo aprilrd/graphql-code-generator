@@ -1,7 +1,7 @@
 import { ScalarsMap, ConvertNameFn, AvoidOptionalsConfig } from '../types';
 import { GraphQLObjectType, GraphQLInterfaceType, GraphQLOutputType, GraphQLNamedType } from 'graphql';
 
-export type PrimitiveField = { isConditional: boolean; fieldName: string };
+export type PrimitiveField = { required: 'required' | 'unset' | 'optional' ; fieldName: string };
 export type PrimitiveAliasedFields = { alias: string; fieldName: string };
 export type LinkField = { alias: string; name: string; type: string; selectionSet: string };
 export type NameAndType = { name: string; type: string };

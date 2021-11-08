@@ -27,7 +27,7 @@ export class TypeScriptSelectionSetProcessor extends BaseSelectionSetProcessor<S
     const conditilnalsList: string[] = [];
     let resString = `Pick<${parentName}, ${fields
       .map(field => {
-        if (field.isConditional) {
+        if (field.required === 'optional') {
           hasConditionals = true;
           conditilnalsList.push(field.fieldName);
         }
